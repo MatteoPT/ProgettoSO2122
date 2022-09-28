@@ -3,12 +3,22 @@
 #include<sys/types.h>
 #include<dirent.h>
 #include<string.h>
+#include<unistd.h>
 
 char* getDirectory(char* pid) {
   char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + 1);
   strcpy(res, "/proc");
   strcat(res, "/");
   strcat(res, pid);
+  return res;
+}
+
+char* getDirStat(char* pid) {
+  char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + strlen("/stat") + 1);
+  strcpy(res, "/proc");
+  strcat(res, "/");
+  strcat(res, pid);
+  strcat(res, "/stat");
   return res;
 }
 
@@ -30,12 +40,32 @@ int main() {
     printf("directory name -> %s\n", proc_r->d_name);
     if (strcmp(proc_r->d_name, "thread-self") == 0) break;
   }
+  
+  FILE *f = fopen("/proc/uptime", "r");
+  int uptime = 0;
+  fscanf(f, "%d", &uptime);
+  fclose(f);
 
   printf("IN THREAD\n");
   //Una volta nel thread, stampo i PID di tutti i processi
   while( (proc_r = readdir(dir)) != NULL) {
-  
-    printf("pid -> %s\n", proc_r->d_name);    
+     
+    FILE *g = fopen(getDirStat(proc_r->d_name), "r");
+    long unsigned int utime = 0;
+    long unsigned int stime = 0;
+    long int cutime = 0;
+    long int cstime = 0;
+    long long unsigned int starttime = 0;
+    long unsigned int hertz = sysconf(_SC_CLK_TCK);
+    fscanf(g, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %lu %lu %ld %ld %*ld %*ld %*ld %*ld %llu", &utime, &stime, &cutime, &cstime, &starttime);
+    //printf("Uptime -> %d\nUTime -> %lu\nSTime -> %lu\nStart Time -> %llu\n", uptime, utime_ticks, stime_ticks, starttime);
+
+    long unsigned int total_time = utime + stime + cutime + cstime;
+    long unsigned int seconds = uptime - (starttime/hertz);
+    total_time = total_time / hertz;
+    float cpu_usage = 100*( (float) total_time / (float) seconds);
+    printf("%s || %.3f % \n", proc_r->d_name, cpu_usage);
+
     char* directory = getDirectory(proc_r->d_name);
     
     DIR* pid_dir;
