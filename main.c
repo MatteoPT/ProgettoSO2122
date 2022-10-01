@@ -25,7 +25,7 @@ char* getDirStat(char* pid) {
 //Full credits must be given to this question on Stack Overflow
 //for the method used to calculate CPU usage percentage
 //https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
-float getCpuUsage(char* pid, int uptime) {
+double getCpuUsage(char* pid, int uptime) {
   char* dirStat;
   dirStat = getDirStat(pid);
   FILE *g = fopen(dirStat, "r");
@@ -41,8 +41,26 @@ float getCpuUsage(char* pid, int uptime) {
   long unsigned int total_time = utime + stime + cutime + cstime;
   long unsigned int seconds = uptime - (starttime/hertz);
   total_time = total_time / hertz;
-  float cpu_usage = 100*( (float) total_time / (float) seconds);
+  double cpu_usage = 100*( (double) total_time / (double) seconds);
   return cpu_usage;
+}
+
+double getMemSize() {
+  double res = 0;
+  FILE *fm = fopen("/proc/meminfo", "r");
+  if (fm == NULL) {
+    printf("Errore nell'apertura della directory '/proc/meminfo'\n");
+    exit(EXIT_FAILURE);
+  }
+  char memStr[256];
+  int mem;
+  while(fgets(memStr, 256, fm) != NULL) {
+    if (sscanf(memStr, "MemTotal: %d kB", &mem) == 1) {
+      res = mem*1024.0;
+    }
+  }
+  fclose(fm);
+  return res;
 }
 
 
@@ -73,7 +91,7 @@ int main() {
   //Una volta nel thread, stampo i PID di tutti i processi
   while( (proc_r = readdir(dir)) != NULL) {
   
-    float cpu_usage = getCpuUsage(proc_r->d_name, uptime);
+    double cpu_usage = getCpuUsage(proc_r->d_name, uptime);
      
     printf("%s || %.3f % \n", proc_r->d_name, cpu_usage);
 
@@ -93,6 +111,7 @@ int main() {
     free(directory);
     
   }
+
   
   closedir(dir);
   
