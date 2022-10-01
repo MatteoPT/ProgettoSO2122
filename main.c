@@ -26,7 +26,9 @@ char* getDirStat(char* pid) {
 //for the method used to calculate CPU usage percentage
 //https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
 float getCpuUsage(char* pid, int uptime) {
-  FILE *g = fopen(getDirStat(pid), "r");
+  char* dirStat;
+  dirStat = getDirStat(pid);
+  FILE *g = fopen(dirStat, "r");
   long unsigned int utime = 0;
   long unsigned int stime = 0;
   long int cutime = 0;
@@ -35,6 +37,7 @@ float getCpuUsage(char* pid, int uptime) {
   long unsigned int hertz = sysconf(_SC_CLK_TCK);
   fscanf(g, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %lu %lu %ld %ld %*ld %*ld %*ld %*ld %llu", &utime, &stime, &cutime, &cstime, &starttime);
   fclose(g);
+  free(dirStat);
   long unsigned int total_time = utime + stime + cutime + cstime;
   long unsigned int seconds = uptime - (starttime/hertz);
   total_time = total_time / hertz;
@@ -74,16 +77,23 @@ int main() {
      
     printf("%s || %.3f % \n", proc_r->d_name, cpu_usage);
 
-    char* directory = getDirectory(proc_r->d_name);
+    char* directory;
+    directory = getDirectory(proc_r->d_name);
     
     DIR* pid_dir;
+    
     if( (pid_dir = opendir(directory)) == NULL) {
       //Gestione errori
       printf("Errore nell'apertura di %s\n", directory);
       exit(EXIT_FAILURE);
     }
-  
+    
+    closedir(pid_dir);
+    
+    free(directory);
+    
   }
   
+  closedir(dir);
   
 }
