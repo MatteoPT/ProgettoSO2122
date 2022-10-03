@@ -5,10 +5,12 @@
 #include<string.h>
 #include<unistd.h>
 #include<signal.h>
+#include<errno.h>
 
 
 char* getDirectory(char* pid) {
   char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + 1);
+  if (res == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
   strcpy(res, "/proc");
   strcat(res, "/");
   strcat(res, pid);
@@ -18,6 +20,7 @@ char* getDirectory(char* pid) {
 
 char* getDirStat(char* pid) {
   char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + strlen("/stat") + 1);
+  if (res == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
   strcpy(res, "/proc");
   strcat(res, "/");
   strcat(res, pid);
@@ -27,6 +30,7 @@ char* getDirStat(char* pid) {
 
 char* getDirStatm(char* pid) {
   char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + strlen("/stat") + 2);
+  if (res == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
   strcpy(res, "/proc");
   strcat(res, "/");
   strcat(res, pid);
@@ -41,6 +45,7 @@ char* getDirStatm(char* pid) {
 double getCpuUsage(char* pid, int uptime) {
   char* dirStat = getDirStat(pid);
   FILE *g = fopen(dirStat, "r");
+  if (g == NULL) { printf("Errore nell'apertura della directory '/proc/%s/stat'\n", pid); exit(EXIT_FAILURE); }
   long unsigned int utime = 0;
   long unsigned int stime = 0;
   long int cutime = 0;
@@ -48,7 +53,7 @@ double getCpuUsage(char* pid, int uptime) {
   long long unsigned int starttime = 0;
   long unsigned int hertz = sysconf(_SC_CLK_TCK);
   fscanf(g, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %lu %lu %ld %ld %*ld %*ld %*ld %*ld %llu", &utime, &stime, &cutime, &cstime, &starttime);
-  fclose(g);
+  if ( fclose(g) == EOF ) { printf("Errore nella chiusura della directory '/proc/%s/stat'\n", pid); exit(EXIT_FAILURE); }
   free(dirStat);
   long unsigned int total_time = utime + stime + cutime + cstime;
   long unsigned int seconds = uptime - (starttime/hertz);
@@ -61,10 +66,7 @@ double getCpuUsage(char* pid, int uptime) {
 double getMemSize() {
   double res = 0;
   FILE *fm = fopen("/proc/meminfo", "r");
-  if (fm == NULL) {
-    printf("Errore nell'apertura della directory '/proc/meminfo'\n");
-    exit(EXIT_FAILURE);
-  }
+  if (fm == NULL) { printf("Errore nell'apertura della directory '/proc/meminfo'\n"); exit(EXIT_FAILURE); }
   char memStr[256];
   int mem;
   while(fgets(memStr, 256, fm) != NULL) {
@@ -72,7 +74,7 @@ double getMemSize() {
       res = mem*1024.0;
     }
   }
-  fclose(fm);
+  if (fclose(fm) == EOF) { printf("Errore nella chiusura della directory '/proc/meminfo'\n"); exit(EXIT_FAILURE); }
   return res;
 }
 
@@ -83,8 +85,9 @@ double getMemUsage(char* pid) {
   long pageSize = sysconf(_SC_PAGE_SIZE);
   char* dirStatm = getDirStatm(pid);
   FILE *fmem = fopen(dirStatm, "r");
+  if (fmem == NULL) { printf("Errore nell'apertura della directory '/proc/%s/statm'\n", pid); exit(EXIT_FAILURE); }  
   fscanf(fmem, "%*d %*d %*d %*d %*d %lf", &memUsed);
-  fclose(fmem);
+  if (fclose(fmem) == EOF) { printf("Errore nella chiusura della directory '/proc/%s/statm'\n", pid); exit(EXIT_FAILURE); }
   free(dirStatm);
   memUsed = memUsed * pageSize;
   res = 100 * ((double) memUsed / (double) memSize);
@@ -103,23 +106,59 @@ void print_help() {
 }
 
 int terminate(int pid) {
-  return kill( (pid_t) pid, SIGTERM);
-  //Gestione errori
+  printf("\n        Termino il processo %d...\n", pid);
+  int res = kill( (pid_t) pid, SIGTERM);
+  if ( res == -1 ) {
+    if (errno == EPERM) {
+      printf("        Non hai i permessi necessari per terminare il processo con PID %d\n", pid);
+    }
+    else if (errno == ESRCH) {
+      printf("        Il processo con PID %d non esiste!\n", pid);
+    }
+  }
+  return res;
 }
 
 int kill_p(int pid) {
-  return kill( (pid_t) pid, SIGKILL);
-  //Gestione errori
+  printf("\n        Termino il processo %d...\n", pid);
+  int res = kill( (pid_t) pid, SIGKILL);
+  if ( res == -1 ) {
+    if (errno == EPERM) {
+      printf("        Non hai i permessi necessari per terminare il processo con PID %d\n", pid);
+    }
+    else if (errno == ESRCH) {
+      printf("        Il processo con PID %d non esiste!\n", pid);
+    }
+  }
+  return res;
 }
 
 int suspend(int pid) {
-  return kill( (pid_t) pid, SIGSTOP);
-  //Gestione errori
+  printf("\n        Sospendo il processo %d...\n", pid);
+  int res = kill( (pid_t) pid, SIGSTOP);
+  if ( res == -1 ) {
+    if (errno == EPERM) {
+      printf("      Non hai i permessi necessari per sospendere il processo con PID %d\n", pid);
+    }
+    else if (errno == ESRCH) {
+      printf("      Il processo con PID %d non esiste!\n", pid);
+    }
+  }
+  return res;
 }
 
 int resume(int pid) {
-  return kill( (pid_t) pid, SIGCONT);
-  //Gestione errori
+  printf("\n        Riprendo il processo %d...\n", pid);
+  int res = kill( (pid_t) pid, SIGCONT);
+  if ( res == -1 ) {
+    if (errno == EPERM) {
+      printf("      Non hai i permessi necessari per riprendere il processo con PID %d\n", pid);
+    }
+    else if (errno == ESRCH) {
+      printf("      Il processo con PID %d non esiste!\n", pid);
+    }
+  }
+  return res;
 }
 
 
@@ -130,26 +169,28 @@ int main() {
 
   dir = opendir("/proc");
   if (dir == NULL) {
-    //Gestione errori
-    printf("Errore nell'apertura della directory /proc\n");
+    if (errno == EACCES) printf("Accesso negato a '/proc'\n");
+    else if (errno == EMFILE || errno == ENFILE) printf("Raggiunto il limite di file descriptors aperti\n");
+    else if (errno == ENOMEM) printf("Memoria disponibile non sufficiente per completare l'operazione\n");
+    else printf("Errore nell'apertura di '/proc'\n");
     exit(EXIT_FAILURE);
   }
   
-  //Cerco il thread corrente
   while( (proc_r = readdir(dir)) != NULL ) {
     if (strcmp(proc_r->d_name, "thread-self") == 0) break;
   }
   
-  FILE *f = fopen("/proc/uptime", "r");
   int uptime = 0;
-  fscanf(f, "%d", &uptime);
-  fclose(f);
+  FILE *f = fopen("/proc/uptime", "r");
+  if (f != NULL) {
+    fscanf(f, "%d", &uptime);
+    fclose(f);
+  }
   
   printf("\033[30m\033[42m");
   printf("        PID             Memory%%         CPU%%          ");
   printf("\033[0m\033[K\n");
 
-  //Una volta nel thread, stampo i PID di tutti i processi
   while( (proc_r = readdir(dir)) != NULL) {
   
     double cpu_usage = getCpuUsage(proc_r->d_name, uptime);
@@ -166,6 +207,7 @@ int main() {
   
   while(1) {
     char* comm = (char*) malloc(10);
+    if (comm == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
     int pid; int res_signal;
     printf("        Inserisci un comando: ");
     scanf("%s", comm);
@@ -175,40 +217,39 @@ int main() {
     }
     else if (strcmp(comm, "q") == 0 || strcmp(comm, "quit") == 0) {
       free(comm);
-      printf("        Esco dal programma...\n");
       break;
     }
     else if (strcmp(comm, "t") == 0 || strcmp(comm, "terminate") == 0) {
       free(comm);
-      printf("      Inserisci il pid: ");
+      printf("        Inserisci il pid: ");
       scanf("%d", &pid);
       res_signal = terminate(pid);
-      printf("      Termino il processo %d...\n", pid);
       if (res_signal == 0) printf("        Terminato con successo!\n");
     }
     else if (strcmp(comm, "k") == 0 || strcmp(comm, "kill") == 0) {
       free(comm);
-      printf("      Inserisci il pid: ");
+      printf("        Inserisci il pid: ");
       scanf("%d", &pid);
       res_signal = kill_p(pid);
-      printf("      Termino il processo %d...\n", pid);
       if (res_signal == 0) printf("        Terminato con successo!\n");
     }
     else if (strcmp(comm, "s") == 0 || strcmp(comm, "suspend") == 0) {
       free(comm);
-      printf("        Inserisci il pid: ");
+      printf("          Inserisci il pid: ");
       scanf("%d", &pid);
       res_signal = suspend(pid);
-      printf("      Sospend il processo %d...\n", pid);
       if (res_signal == 0) printf("        Sospeso con successo!\n");
     }
     else if (strcmp(comm, "r") == 0 || strcmp(comm, "resume") == 0) {
       free(comm);
-      printf("      Inserisci il pid: ");
+      printf("        Inserisci il pid: ");
       scanf("%d", &pid);
       res_signal = terminate(pid);
-      printf("      Riprendo il processo %d...\n", pid);
       if (res_signal == 0) printf("        Ripreso con successo!\n");
+    }
+    else {
+      printf("        ATTENZIONE! Comando non riconosciuto\n");
+      printf("        Inserisci h(elp) per una lista dei comandi disponibili\n");        
     }
   }
   
