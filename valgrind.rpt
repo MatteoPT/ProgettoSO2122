@@ -1,14 +1,14 @@
-==4646== Memcheck, a memory error detector
-==4646== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==4646== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
-==4646== Command: ./top_test
-==4646== Parent PID: 4632
-==4646== 
-==4646== 
-==4646== HEAP SUMMARY:
-==4646==     in use at exit: 0 bytes in 0 blocks
-==4646==   total heap usage: 1,758 allocs, 1,758 frees, 1,026,089 bytes allocated
-==4646== 
-==4646== All heap blocks were freed -- no leaks are possible
-==4646== 
-==4646== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==5608== Memcheck, a memory error detector
+==5608== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==5608== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==5608== Command: ./top_test
+==5608== Parent PID: 1971
+==5608== 
+==5608== 
+==5608== HEAP SUMMARY:
+==5608==     in use at exit: 0 bytes in 0 blocks
+==5608==   total heap usage: 3,336 allocs, 3,336 frees, 2,553,940 bytes allocated
+==5608== 
+==5608== All heap blocks were freed -- no leaks are possible
+==5608== 
+==5608== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

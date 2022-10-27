@@ -17,6 +17,8 @@
 
 int main() {
 
+N:
+
   DIR* dir;
   struct dirent* proc_r;
 
@@ -41,17 +43,28 @@ int main() {
   }
   
   printf("\033[30m\033[42m");
-  printf("        PID             Memory%%         CPU%%          ");
+  printf("        PID             Memory%%         CPU%%            NAME                ");
   printf("\033[0m\033[K\n");
 
   while( (proc_r = readdir(dir)) != NULL) {
   
-    double cpu_usage = getCpuUsage(proc_r->d_name, uptime);
+    char* pid = proc_r->d_name;
+  
+    double cpu_usage = getCpuUsage(pid, uptime);
     
-    double mem_usage = getMemUsage(proc_r->d_name);
+    double mem_usage = getMemUsage(pid);
+    
+    char name[256];
+    
+    char user[256];
+    
+    getUser(pid, user);
+    
+    getName(pid, name);
+   
      
-    printf("        %s\t\t%.3f%\t\t%.3f%\n", proc_r->d_name, mem_usage, cpu_usage);
-    
+    printf("        %s\t\t%.3f\t\t%.3f\t\t%s\t\t%s\n", pid, mem_usage, cpu_usage, user, name);
+
   }
 
   printf("\033[30m\033[47m");
@@ -99,6 +112,10 @@ int main() {
       scanf("%d", &pid);
       res_signal = terminate(pid);
       if (res_signal == 0) printf("        Ripreso con successo!\n");
+    }
+    else if (strcmp(comm, "u") == 0 || strcmp(comm, "update") == 0) {
+      free(comm);
+      goto N;
     }
     else {
       printf("        ATTENZIONE! Comando non riconosciuto\n");

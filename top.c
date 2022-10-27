@@ -8,6 +8,7 @@
 #include<unistd.h>
 #include<signal.h>
 #include<errno.h>
+#include<pwd.h>
 
 #include "top.h"
 
@@ -31,6 +32,16 @@ char* getDirStat(char* pid) {
   strcat(res, "/");
   strcat(res, pid);
   strcat(res, "/stat");
+  return res;
+}
+
+char* getDirStatus(char* pid) {
+  char* res = (char*) malloc(sizeof("/proc") + strlen(pid) + strlen("/status") + 1);
+  if (res == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
+  strcpy(res, "/proc");
+  strcat(res, "/");
+  strcat(res, pid);
+  strcat(res, "/status");
   return res;
 }
 
@@ -65,6 +76,41 @@ double getCpuUsage(char* pid, int uptime) {
   total_time = total_time / HERTZ;
   double cpu_usage = 100*( (double) total_time / (double) seconds);
   return cpu_usage;
+}
+
+void getName(char* pid, char* copy) {
+  char* dirStatus = getDirStatus(pid);
+  FILE *n = fopen(dirStatus, "r");
+  if (n == NULL) { printf("Errore nell'apertura della directory '/proc/%s/status'\n", pid); exit(EXIT_FAILURE); }
+  char name[256];
+  char nameStr[256];
+  while(fgets(nameStr, 256, n) != NULL) {
+    if (sscanf(nameStr, "Name: %s", name) == 1) {
+      break;
+    }
+  }
+  if ( fclose(n) == EOF ) { printf("Errore nella chiusura della directory '/proc/%s/status'\n", pid); exit(EXIT_FAILURE); }
+  free(dirStatus);
+  strcpy(copy, name);
+  return;
+}
+
+void getUser(char* pid, char* copy) {
+  char* dirStatus = getDirStatus(pid);
+  FILE *u = fopen(dirStatus, "r");
+  if (u == NULL) { printf("Errore nell'apertura della directory '/proc/%s/status'\n", pid); exit(EXIT_FAILURE); }
+  int user;
+  char userStr[256];
+  while(fgets(userStr, 256, u) != NULL) {
+    if (sscanf(userStr, "Uid: %d %*d %*d %*d", &user) == 1) {
+      break;
+    }
+  }
+  if ( fclose(u) == EOF ) { printf("Errore nella chiusura della directory '/proc/%s/status'\n", pid); exit(EXIT_FAILURE); }
+  free(dirStatus);
+  struct passwd* uspw = getpwuid(user);
+  strcpy(copy, uspw->pw_name);
+  return;
 }
 
 
@@ -105,6 +151,7 @@ void print_help() {
   printf("        (K)ILL -> Terma il processo immediatamente\n");
   printf("        (S)USPEND -> Mette in pausa il processo\n");
   printf("        (R)ESUME -> Riprende il processo messo in pausa\n");
+  printf("        (U)PDATE -> Effettua un refresh della lista\n");
   printf("        (Q)UIT -> Esce del programma\n");
   printf("\033[0m\033[K\n");
 }
