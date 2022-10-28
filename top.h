@@ -9,6 +9,7 @@ double getMemSize();
 double getMemUsage(char* pid);
 void getName(char* pid, char* copy);
 void getUser(char* pid, char* copy);
+char getStatus(char* pid);
 void print_help();
 int terminate(int pid);
 int kill_p(int pid);

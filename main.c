@@ -43,7 +43,7 @@ N:
   }
   
   printf("\033[30m\033[42m");
-  printf("        PID             Memory%%         CPU%%            NAME                ");
+  printf("        PID             Memory%%         CPU%%            STATUS          USER            NAME                ");
   printf("\033[0m\033[K\n");
 
   while( (proc_r = readdir(dir)) != NULL) {
@@ -61,9 +61,11 @@ N:
     getUser(pid, user);
     
     getName(pid, name);
+    
+    char status = getStatus(pid);
    
      
-    printf("        %s\t\t%.3f\t\t%.3f\t\t%s\t\t%s\n", pid, mem_usage, cpu_usage, user, name);
+    printf("        %s\t\t%.3f\t\t%.3f\t\t%c\t\t%s\t\t%s\n", pid, mem_usage, cpu_usage, status, user, name);
 
   }
 
@@ -76,7 +78,8 @@ N:
     if (comm == NULL) { printf("Errore malloc\n"); exit(EXIT_FAILURE); }
     int pid; int res_signal;
     printf("        Inserisci un comando: ");
-    scanf("%s", comm);
+    scanf("%s", comm); int i;
+    for (i = 0 ; i<strlen(comm); i++) { comm[i] = tolower(comm[i]); }
     if (strcmp(comm, "h") == 0 || strcmp(comm, "help") == 0) {
       free(comm);
       print_help();

@@ -113,6 +113,17 @@ void getUser(char* pid, char* copy) {
   return;
 }
 
+char getStatus(char* pid) {
+  char* dirStat = getDirStat(pid);
+  FILE *s = fopen(dirStat, "r");
+  if (s == NULL) { printf("Errore nell'apertura della directory '/proc/%s/stat'\n", pid); exit(EXIT_FAILURE); }
+  char status;
+  fscanf(s, "%*d %*s %c", &status);
+  if ( fclose(s) == EOF ) { printf("Errore nella chiusura della directory '/proc/%s/stat'\n", pid); exit(EXIT_FAILURE); }
+  free(dirStat);
+  return status;
+}
+
 
 double getMemSize() {
   double res = 0;
